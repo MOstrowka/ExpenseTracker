@@ -98,14 +98,26 @@ def add_expense(description: str, amount: float, category: Optional[str] = None)
     check_budget()
 
 
-def list_expenses(category: Optional[str] = None) -> None:
+def list_expenses(category: Optional[str] = None, start_date: Optional[str] = None,
+                  end_date: Optional[str] = None) -> None:
     """
-    List all expenses or filter by category in a readable format.
+    List all expenses, filter by category, or by a date range.
     Displays the ID, date, description, amount, and category for each expense.
     """
     expenses = load_expenses()
+
     if category:
         expenses = [expense for expense in expenses if expense.get('category') == category]
+
+    if start_date:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        expenses = [expense for expense in expenses if
+                    datetime.strptime(expense['date'], "%Y-%m-%d %H:%M:%S") >= start_date_obj]
+
+    if end_date:
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+        expenses = [expense for expense in expenses if
+                    datetime.strptime(expense['date'], "%Y-%m-%d %H:%M:%S") <= end_date_obj]
 
     if not expenses:
         print_no_expenses_message(category)
@@ -246,9 +258,11 @@ def main() -> None:
     add_parser.add_argument('--amount', required=True, type=float, help='Amount of the expense')
     add_parser.add_argument('--category', type=str, help='Category of the expense')
 
-    # List command to display all expenses or filter by category
-    list_parser = subparsers.add_parser('list', help='List all expenses or filter by category')
+    # List command to display all expenses or filter by category or date range
+    list_parser = subparsers.add_parser('list', help='List all expenses or filter by category or date range')
     list_parser.add_argument('--category', type=str, help='Category to filter expenses by')
+    list_parser.add_argument('--start-date', type=str, help='Start date to filter expenses by (YYYY-MM-DD)')
+    list_parser.add_argument('--end-date', type=str, help='End date to filter expenses by (YYYY-MM-DD)')
 
     # Delete command to remove an expense by ID
     delete_parser = subparsers.add_parser('delete', help='Delete an expense by ID')
