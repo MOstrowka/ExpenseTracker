@@ -71,6 +71,20 @@ def list_expenses() -> None:
             print(f"{expense['id']:<5} {expense['date']:<20} {expense['description']:<30} ${expense['amount']:<10.2f}")
 
 
+def delete_expense(expense_id: int) -> None:
+    """
+    Delete an expense by ID.
+    Removes the expense with the given ID from the list and updates the JSON file.
+    """
+    expenses = load_expenses()
+    updated_expenses = [expense for expense in expenses if expense['id'] != expense_id]
+    if len(updated_expenses) == len(expenses):
+        print(f"No expense found with ID: {expense_id}")
+    else:
+        save_expenses(updated_expenses)
+        print(f"Expense with ID {expense_id} deleted successfully.")
+
+
 def main() -> None:
     """
     Main function to handle CLI commands.
@@ -91,8 +105,11 @@ def main() -> None:
     # List command to display all expenses
     list_parser = subparsers.add_parser('list', help='List all expenses')
 
-    # Placeholder commands for future implementation
+    # Delete command to remove an expense by ID
     delete_parser = subparsers.add_parser('delete', help='Delete an expense by ID')
+    delete_parser.add_argument('--id', required=True, type=int, help='ID of the expense to delete')
+
+    # Placeholder commands for future implementation
     update_parser = subparsers.add_parser('update', help='Update an existing expense')
     summary_parser = subparsers.add_parser('summary', help='Show a summary of expenses')
     help_parser = subparsers.add_parser('help', help='Show help information')
@@ -104,6 +121,8 @@ def main() -> None:
         add_expense(args.description, args.amount)
     elif args.command == 'list':
         list_expenses()
+    elif args.command == 'delete':
+        delete_expense(args.id)
     elif not args.command or args.command == 'help':
         parser.print_help()
 
