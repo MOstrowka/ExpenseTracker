@@ -85,6 +85,25 @@ def delete_expense(expense_id: int) -> None:
         print(f"Expense with ID {expense_id} deleted successfully.")
 
 
+def update_expense(expense_id: int, description: str = None, amount: float = None) -> None:
+    """
+    Update an existing expense by ID.
+    Allows updating the description, amount, or both for the specified expense.
+    """
+    expenses = load_expenses()
+    for expense in expenses:
+        if expense['id'] == expense_id:
+            if description:
+                expense['description'] = description
+            if amount:
+                expense['amount'] = amount
+            expense['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Update date to current time
+            save_expenses(expenses)
+            print(f"Expense with ID {expense_id} updated successfully.")
+            return
+    print(f"No expense found with ID: {expense_id}")
+
+
 def main() -> None:
     """
     Main function to handle CLI commands.
@@ -109,10 +128,14 @@ def main() -> None:
     delete_parser = subparsers.add_parser('delete', help='Delete an expense by ID')
     delete_parser.add_argument('--id', required=True, type=int, help='ID of the expense to delete')
 
-    # Placeholder commands for future implementation
+    # Update command to update an existing expense by ID
     update_parser = subparsers.add_parser('update', help='Update an existing expense')
+    update_parser.add_argument('--id', required=True, type=int, help='ID of the expense to update')
+    update_parser.add_argument('--description', type=str, help='New description of the expense')
+    update_parser.add_argument('--amount', type=float, help='New amount of the expense')
+
+    # Placeholder command for showing a summary of expenses
     summary_parser = subparsers.add_parser('summary', help='Show a summary of expenses')
-    help_parser = subparsers.add_parser('help', help='Show help information')
 
     args = parser.parse_args()
 
@@ -123,6 +146,8 @@ def main() -> None:
         list_expenses()
     elif args.command == 'delete':
         delete_expense(args.id)
+    elif args.command == 'update':
+        update_expense(args.id, args.description, args.amount)
     elif not args.command or args.command == 'help':
         parser.print_help()
 
