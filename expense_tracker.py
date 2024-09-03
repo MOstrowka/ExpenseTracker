@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 # Define the path for the expenses JSON file
 EXPENSES_FILE: str = 'expenses.json'
@@ -24,9 +24,15 @@ def load_expenses() -> List[Dict[str, Any]]:
     """
     Load expenses from the JSON file.
     Returns a list of expenses.
+    If the JSON file is empty or contains invalid JSON, it initializes an empty list.
     """
-    with open(EXPENSES_FILE, 'r') as file:
-        return json.load(file)
+    try:
+        with open(EXPENSES_FILE, 'r') as file:
+            return json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        # If JSON is invalid or file is not found, return an empty list
+        return []
+
 
 
 def save_expenses(expenses: List[Dict[str, Any]]) -> None:
@@ -38,9 +44,9 @@ def save_expenses(expenses: List[Dict[str, Any]]) -> None:
         json.dump(expenses, file, indent=4)
 
 
-def add_expense(description: str, amount: float) -> None:
+def add_expense(description: str, amount: float, category: Optional[str] = None) -> None:
     """
-    Add a new expense with a description and amount.
+    Add a new expense with a description, amount, and optional category.
     Assigns a unique ID and records the current date and time.
     """
     expenses = load_expenses()
@@ -49,26 +55,31 @@ def add_expense(description: str, amount: float) -> None:
         "id": new_id,
         "description": description,
         "amount": amount,
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "category": category if category else "Uncategorized"
     }
     expenses.append(new_expense)
     save_expenses(expenses)
     print(f"Expense added successfully (ID: {new_id})")
 
 
-def list_expenses() -> None:
+def list_expenses(category: Optional[str] = None) -> None:
     """
-    List all expenses in a readable format.
-    Displays the ID, date, description, and amount for each expense.
+    List all expenses or filter by category in a readable format.
+    Displays the ID, date, description, amount, and category for each expense.
     """
     expenses = load_expenses()
+    if category:
+        expenses = [expense for expense in expenses if expense.get('category') == category]
+
     if not expenses:
-        print("No expenses recorded.")
+        print_no_expenses_message(category)
     else:
-        print(f"{'ID':<5} {'Date':<20} {'Description':<30} {'Amount':<10}")
-        print("-" * 70)
+        print(f"{'ID':<5} {'Date':<20} {'Description':<30} {'Amount':<10} {'Category':<20}")
+        print("-" * 90)
         for expense in expenses:
-            print(f"{expense['id']:<5} {expense['date']:<20} {expense['description']:<30} ${expense['amount']:<10.2f}")
+            print(f"{expense['id']:<5} {expense['date']:<20} {expense['description']:<30} "
+                  f"${expense['amount']:<10.2f} {expense['category']:<20}")
 
 
 def delete_expense(expense_id: int) -> None:
@@ -85,10 +96,10 @@ def delete_expense(expense_id: int) -> None:
         print(f"Expense with ID {expense_id} deleted successfully.")
 
 
-def update_expense(expense_id: int, description: str = None, amount: float = None) -> None:
+def update_expense(expense_id: int, description: str = None, amount: float = None, category: Optional[str] = None) -> None:
     """
     Update an existing expense by ID.
-    Allows updating the description, amount, or both for the specified expense.
+    Allows updating the description, amount, category, or all for the specified expense.
     """
     expenses = load_expenses()
     for expense in expenses:
@@ -97,6 +108,8 @@ def update_expense(expense_id: int, description: str = None, amount: float = Non
                 expense['description'] = description
             if amount:
                 expense['amount'] = amount
+            if category:
+                expense['category'] = category
             expense['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Update date to current time
             save_expenses(expenses)
             print(f"Expense with ID {expense_id} updated successfully.")
@@ -127,6 +140,17 @@ def show_summary(month: int = None) -> None:
         print(f"Total expenses: ${total:.2f}")
 
 
+def print_no_expenses_message(category: Optional[str] = None) -> None:
+    """
+    Print a message when there are no expenses recorded.
+    Optionally mentions the category if provided.
+    """
+    if category:
+        print(f"No expenses found in category '{category}'.")
+    else:
+        print("No expenses recorded.")
+
+
 def main() -> None:
     """
     Main function to handle CLI commands.
@@ -143,9 +167,11 @@ def main() -> None:
     add_parser = subparsers.add_parser('add', help='Add a new expense')
     add_parser.add_argument('--description', required=True, type=str, help='Description of the expense')
     add_parser.add_argument('--amount', required=True, type=float, help='Amount of the expense')
+    add_parser.add_argument('--category', type=str, help='Category of the expense')
 
-    # List command to display all expenses
-    list_parser = subparsers.add_parser('list', help='List all expenses')
+    # List command to display all expenses or filter by category
+    list_parser = subparsers.add_parser('list', help='List all expenses or filter by category')
+    list_parser.add_argument('--category', type=str, help='Category to filter expenses by')
 
     # Delete command to remove an expense by ID
     delete_parser = subparsers.add_parser('delete', help='Delete an expense by ID')
@@ -156,6 +182,7 @@ def main() -> None:
     update_parser.add_argument('--id', required=True, type=int, help='ID of the expense to update')
     update_parser.add_argument('--description', type=str, help='New description of the expense')
     update_parser.add_argument('--amount', type=float, help='New amount of the expense')
+    update_parser.add_argument('--category', type=str, help='New category of the expense')
 
     # Summary command to show a summary of expenses
     summary_parser = subparsers.add_parser('summary', help='Show a summary of expenses')
@@ -165,13 +192,13 @@ def main() -> None:
 
     # Execute based on the command provided
     if args.command == 'add':
-        add_expense(args.description, args.amount)
+        add_expense(args.description, args.amount, args.category)
     elif args.command == 'list':
-        list_expenses()
+        list_expenses(args.category)
     elif args.command == 'delete':
         delete_expense(args.id)
     elif args.command == 'update':
-        update_expense(args.id, args.description, args.amount)
+        update_expense(args.id, args.description, args.amount, args.category)
     elif args.command == 'summary':
         show_summary(args.month)
     elif not args.command or args.command == 'help':
