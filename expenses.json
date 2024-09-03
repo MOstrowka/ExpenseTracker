@@ -4,5 +4,11 @@
         "description": "Lunch",
         "amount": 20.0,
         "date": "2024-09-03 12:09:29"
+    },
+    {
+        "id": 2,
+        "description": "Dinner",
+        "amount": 15.0,
+        "date": "2024-09-03 12:23:57"
     }
 ]

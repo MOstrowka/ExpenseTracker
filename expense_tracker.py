@@ -55,6 +55,22 @@ def add_expense(description: str, amount: float) -> None:
     save_expenses(expenses)
     print(f"Expense added successfully (ID: {new_id})")
 
+
+def list_expenses() -> None:
+    """
+    List all expenses in a readable format.
+    Displays the ID, date, description, and amount for each expense.
+    """
+    expenses = load_expenses()
+    if not expenses:
+        print("No expenses recorded.")
+    else:
+        print(f"{'ID':<5} {'Date':<20} {'Description':<30} {'Amount':<10}")
+        print("-" * 70)
+        for expense in expenses:
+            print(f"{expense['id']:<5} {expense['date']:<20} {expense['description']:<30} ${expense['amount']:<10.2f}")
+
+
 def main() -> None:
     """
     Main function to handle CLI commands.
@@ -72,8 +88,10 @@ def main() -> None:
     add_parser.add_argument('--description', required=True, type=str, help='Description of the expense')
     add_parser.add_argument('--amount', required=True, type=float, help='Amount of the expense')
 
-    # Placeholder commands for future implementation
+    # List command to display all expenses
     list_parser = subparsers.add_parser('list', help='List all expenses')
+
+    # Placeholder commands for future implementation
     delete_parser = subparsers.add_parser('delete', help='Delete an expense by ID')
     update_parser = subparsers.add_parser('update', help='Update an existing expense')
     summary_parser = subparsers.add_parser('summary', help='Show a summary of expenses')
@@ -84,6 +102,8 @@ def main() -> None:
     # Execute based on the command provided
     if args.command == 'add':
         add_expense(args.description, args.amount)
+    elif args.command == 'list':
+        list_expenses()
     elif not args.command or args.command == 'help':
         parser.print_help()
 
