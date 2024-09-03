@@ -6,10 +6,11 @@ import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-# Define the path for the expenses JSON file
+# Define the paths for the expenses and budget JSON files
 EXPENSES_FILE: str = 'expenses.json'
+BUDGET_FILE: str = 'budget.json'
 
-
+# Initialization functions
 def initialize_expenses_file() -> None:
     """
     Initialize the expenses JSON file if it doesn't exist.
@@ -19,7 +20,16 @@ def initialize_expenses_file() -> None:
         with open(EXPENSES_FILE, 'w') as file:
             json.dump([], file)  # Start with an empty list of expenses
 
+def initialize_budget_file() -> None:
+    """
+    Initialize the budget JSON file if it doesn't exist.
+    Sets an initial monthly budget to zero.
+    """
+    if not os.path.exists(BUDGET_FILE):
+        with open(BUDGET_FILE, 'w') as file:
+            json.dump({"monthly_budget": 0}, file)
 
+# Load and save functions
 def load_expenses() -> List[Dict[str, Any]]:
     """
     Load expenses from the JSON file.
@@ -33,8 +43,6 @@ def load_expenses() -> List[Dict[str, Any]]:
         # If JSON is invalid or file is not found, return an empty list
         return []
 
-
-
 def save_expenses(expenses: List[Dict[str, Any]]) -> None:
     """
     Save expenses to the JSON file.
@@ -43,7 +51,25 @@ def save_expenses(expenses: List[Dict[str, Any]]) -> None:
     with open(EXPENSES_FILE, 'w') as file:
         json.dump(expenses, file, indent=4)
 
+def load_budget() -> float:
+    """
+    Load the monthly budget from the JSON file.
+    Returns the monthly budget amount.
+    """
+    try:
+        with open(BUDGET_FILE, 'r') as file:
+            return json.load(file).get("monthly_budget", 0)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return 0
 
+def save_budget(monthly_budget: float) -> None:
+    """
+    Save the monthly budget to the JSON file.
+    """
+    with open(BUDGET_FILE, 'w') as file:
+        json.dump({"monthly_budget": monthly_budget}, file)
+
+# Expense functions
 def add_expense(description: str, amount: float, category: Optional[str] = None) -> None:
     """
     Add a new expense with a description, amount, and optional category.
@@ -61,7 +87,7 @@ def add_expense(description: str, amount: float, category: Optional[str] = None)
     expenses.append(new_expense)
     save_expenses(expenses)
     print(f"Expense added successfully (ID: {new_id})")
-
+    check_budget()
 
 def list_expenses(category: Optional[str] = None) -> None:
     """
@@ -81,7 +107,6 @@ def list_expenses(category: Optional[str] = None) -> None:
             print(f"{expense['id']:<5} {expense['date']:<20} {expense['description']:<30} "
                   f"${expense['amount']:<10.2f} {expense['category']:<20}")
 
-
 def delete_expense(expense_id: int) -> None:
     """
     Delete an expense by ID.
@@ -94,7 +119,6 @@ def delete_expense(expense_id: int) -> None:
     else:
         save_expenses(updated_expenses)
         print(f"Expense with ID {expense_id} deleted successfully.")
-
 
 def update_expense(expense_id: int, description: str = None, amount: float = None, category: Optional[str] = None) -> None:
     """
@@ -115,7 +139,6 @@ def update_expense(expense_id: int, description: str = None, amount: float = Non
             print(f"Expense with ID {expense_id} updated successfully.")
             return
     print(f"No expense found with ID: {expense_id}")
-
 
 def show_summary(month: int = None) -> None:
     """
@@ -139,7 +162,6 @@ def show_summary(month: int = None) -> None:
     else:
         print(f"Total expenses: ${total:.2f}")
 
-
 def print_no_expenses_message(category: Optional[str] = None) -> None:
     """
     Print a message when there are no expenses recorded.
@@ -150,6 +172,22 @@ def print_no_expenses_message(category: Optional[str] = None) -> None:
     else:
         print("No expenses recorded.")
 
+def check_budget() -> None:
+    """
+    Check if the total expenses exceed the monthly budget.
+    Displays a warning if the budget is exceeded.
+    """
+    total_expenses = sum(expense['amount'] for expense in load_expenses())
+    monthly_budget = load_budget()
+    if total_expenses > monthly_budget:
+        print(f"Warning: You have exceeded your monthly budget of ${monthly_budget:.2f}!")
+
+def set_budget(amount: float) -> None:
+    """
+    Set the monthly budget to the specified amount.
+    """
+    save_budget(amount)
+    print(f"Monthly budget set to ${amount:.2f}")
 
 def main() -> None:
     """
@@ -188,6 +226,10 @@ def main() -> None:
     summary_parser = subparsers.add_parser('summary', help='Show a summary of expenses')
     summary_parser.add_argument('--month', type=int, help='Month number to filter the summary by (1-12)')
 
+    # Set budget command to set a monthly budget
+    budget_parser = subparsers.add_parser('set-budget', help='Set a monthly budget')
+    budget_parser.add_argument('--amount', required=True, type=float, help='Amount of the monthly budget')
+
     args = parser.parse_args()
 
     # Execute based on the command provided
@@ -201,11 +243,13 @@ def main() -> None:
         update_expense(args.id, args.description, args.amount, args.category)
     elif args.command == 'summary':
         show_summary(args.month)
+    elif args.command == 'set-budget':
+        set_budget(args.amount)
     elif not args.command or args.command == 'help':
         parser.print_help()
-
 
 # Entry point for the script
 if __name__ == '__main__':
     initialize_expenses_file()
+    initialize_budget_file()
     main()
