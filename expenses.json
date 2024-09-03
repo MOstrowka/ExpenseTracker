@@ -10,5 +10,17 @@
         "description": "Lunch at restaurant",
         "amount": 25.0,
         "date": "2024-09-03 12:36:33"
+    },
+    {
+        "id": 4,
+        "description": "Lunch",
+        "amount": 20.0,
+        "date": "2024-09-03 12:42:27"
+    },
+    {
+        "id": 5,
+        "description": "Dinner",
+        "amount": 15.0,
+        "date": "2024-09-03 12:42:28"
     }
 ]

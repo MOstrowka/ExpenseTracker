@@ -104,6 +104,29 @@ def update_expense(expense_id: int, description: str = None, amount: float = Non
     print(f"No expense found with ID: {expense_id}")
 
 
+def show_summary(month: int = None) -> None:
+    """
+    Show a summary of expenses.
+    If a month is provided, shows the summary for that month of the current year.
+    Otherwise, shows the total summary of all expenses.
+    """
+    expenses = load_expenses()
+    total = 0.0
+    current_year = datetime.now().year
+
+    for expense in expenses:
+        expense_date = datetime.strptime(expense['date'], "%Y-%m-%d %H:%M:%S")
+        if month and expense_date.month == month and expense_date.year == current_year:
+            total += expense['amount']
+        elif not month:
+            total += expense['amount']
+
+    if month:
+        print(f"Total expenses for {datetime(1900, month, 1).strftime('%B')}: ${total:.2f}")
+    else:
+        print(f"Total expenses: ${total:.2f}")
+
+
 def main() -> None:
     """
     Main function to handle CLI commands.
@@ -134,8 +157,9 @@ def main() -> None:
     update_parser.add_argument('--description', type=str, help='New description of the expense')
     update_parser.add_argument('--amount', type=float, help='New amount of the expense')
 
-    # Placeholder command for showing a summary of expenses
+    # Summary command to show a summary of expenses
     summary_parser = subparsers.add_parser('summary', help='Show a summary of expenses')
+    summary_parser.add_argument('--month', type=int, help='Month number to filter the summary by (1-12)')
 
     args = parser.parse_args()
 
@@ -148,6 +172,8 @@ def main() -> None:
         delete_expense(args.id)
     elif args.command == 'update':
         update_expense(args.id, args.description, args.amount)
+    elif args.command == 'summary':
+        show_summary(args.month)
     elif not args.command or args.command == 'help':
         parser.print_help()
 
